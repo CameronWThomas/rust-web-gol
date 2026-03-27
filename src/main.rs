@@ -19,14 +19,13 @@ fn main() {
             cells: vec![vec![false; GRID_SIZE]; GRID_SIZE],
         })
         .add_plugins(DefaultPlugins)
-        .add_startup_systems(setup)
-        .add_system(update_cells)
-        .add_system(render_cells)
+        .add_systems(Startup, setup)
+        .add_systems(Update, (update_cells, render_cells))
         .run();
 }
 
 fn setup(mut commands: Commands, mut grid: ResMut<Grid>) {
-    commands.spawn(Camera2dBundle::default());
+    commands.spawn(Camera2d::default());
 
     for y in 0..GRID_SIZE {
         for x in 0..GRID_SIZE {
@@ -35,25 +34,22 @@ fn setup(mut commands: Commands, mut grid: ResMut<Grid>) {
 
             commands.spawn((
                 Cell { alive },
-                SpriteBundle {
-                    sprite: Sprite {
-                        color: if alive { Color::WHITE } else { Color::BLACK },
-                        custom_size: Some(Vec2::splat(CELL_SIZE)),
-                        ..Default::default()
-                    },
-                    transform: Transform::from_translation(Vec3::new(
-                        x as f32 * CELL_SIZE,
-                        y as f32 * CELL_SIZE,
-                        0.0,
-                    )),
+                Sprite {
+                    color: if alive { Color::WHITE } else { Color::BLACK },
+                    custom_size: Some(Vec2::splat(CELL_SIZE)),
                     ..Default::default()
                 },
+                Transform::from_translation(Vec3::new(
+                    x as f32 * CELL_SIZE,
+                    y as f32 * CELL_SIZE,
+                    0.0,
+                )),
             ));
         }
     }
 }
 
-fn update_cells(mut grid: ResMut<Grid>, mut query: Query<(&mut Cell, &mut Sprite)>) {
+fn update_cells(mut grid: ResMut<Grid>, mut query: Query<(&mut Cell, &mut Sprite, &Transform)>) {
     let mut new_cells = grid.cells.clone();
 
     for y in 0..GRID_SIZE {
@@ -72,12 +68,12 @@ fn update_cells(mut grid: ResMut<Grid>, mut query: Query<(&mut Cell, &mut Sprite
 
     grid.cells = new_cells;
 
-    for (mut cell, mut sprite) in query.iter_mut() {
-        let x = (sprite.transform.translation.x / CELL_SIZE) as usize;
-        let y = (sprite.transform.translation.y / CELL_SIZE) as usize;
+    for (mut cell, mut sprite, transform) in query.iter_mut() {
+        let x = (transform.translation.x / CELL_SIZE) as usize;
+        let y = (transform.translation.y / CELL_SIZE) as usize;
 
         cell.alive = grid.cells[y][x];
-        sprite.sprite.color = if cell.alive { Color::WHITE } else { Color::BLACK };
+        sprite.color = if cell.alive { Color::WHITE } else { Color::BLACK };
     }
 }
 
@@ -107,12 +103,12 @@ fn count_alive_neighbors(cells: &Vec<Vec<bool>>, x: usize, y: usize) -> usize {
     count
 }
 
-fn render_cells(grid: Res<Grid>, mut query: Query<(&mut Cell, &mut Sprite)>) {
-    for (mut cell, mut sprite) in query.iter_mut() {
-        let x = (sprite.transform.translation.x / CELL_SIZE) as usize;
-        let y = (sprite.transform.translation.y / CELL_SIZE) as usize;
+fn render_cells(grid: Res<Grid>, mut query: Query<(&mut Cell, &mut Sprite, &Transform)>) {
+    for (mut cell, mut sprite, transform) in query.iter_mut() {
+        let x = (transform.translation.x / CELL_SIZE) as usize;
+        let y = (transform.translation.y / CELL_SIZE) as usize;
 
         cell.alive = grid.cells[y][x];
-        sprite.sprite.color = if cell.alive { Color::WHITE } else { Color::BLACK };
+        sprite.color = if cell.alive { Color::WHITE } else { Color::BLACK };
     }
 }
